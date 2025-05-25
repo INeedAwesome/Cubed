@@ -1,0 +1,68 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "App", "App", "{4D61F67E-B9CB-AAF5-020A-5C9B6EB3884A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Cubed-Server", "Cubed-Server\Cubed-Server.vcxproj", "{2C638B37-18C6-1ADC-C14B-5392AD8DE65E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Cubed-Common-Headless", "Cubed-Common\Cubed-Common-Headless.vcxproj", "{D412A3DC-407F-5ED7-0973-F634759E803F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{15A0C35D-0158-05AB-6A5F-DE065636A09B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Walnut-Headless", "Walnut\Walnut\Walnut-Headless.vcxproj", "{96B2440B-023E-B2CF-0B4F-35C477590ED0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Walnut-Networking", "Walnut\Walnut-Modules\Walnut-Networking\Walnut-Networking.vcxproj", "{559FD64E-C1B5-D4E4-0A2D-60067682A56C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{53E47842-3FC8-3998-A828-34EB942B241A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "yaml-cpp", "Walnut\vendor\yaml-cpp\yaml-cpp.vcxproj", "{88F1A057-74BE-FB62-9DD7-E90A890331F1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Dist|x64 = Dist|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2C638B37-18C6-1ADC-C14B-5392AD8DE65E}.Debug|x64.ActiveCfg = Debug|x64
+		{2C638B37-18C6-1ADC-C14B-5392AD8DE65E}.Debug|x64.Build.0 = Debug|x64
+		{2C638B37-18C6-1ADC-C14B-5392AD8DE65E}.Dist|x64.ActiveCfg = Dist|x64
+		{2C638B37-18C6-1ADC-C14B-5392AD8DE65E}.Dist|x64.Build.0 = Dist|x64
+		{2C638B37-18C6-1ADC-C14B-5392AD8DE65E}.Release|x64.ActiveCfg = Release|x64
+		{2C638B37-18C6-1ADC-C14B-5392AD8DE65E}.Release|x64.Build.0 = Release|x64
+		{D412A3DC-407F-5ED7-0973-F634759E803F}.Debug|x64.ActiveCfg = Debug|x64
+		{D412A3DC-407F-5ED7-0973-F634759E803F}.Debug|x64.Build.0 = Debug|x64
+		{D412A3DC-407F-5ED7-0973-F634759E803F}.Dist|x64.ActiveCfg = Dist|x64
+		{D412A3DC-407F-5ED7-0973-F634759E803F}.Dist|x64.Build.0 = Dist|x64
+		{D412A3DC-407F-5ED7-0973-F634759E803F}.Release|x64.ActiveCfg = Release|x64
+		{D412A3DC-407F-5ED7-0973-F634759E803F}.Release|x64.Build.0 = Release|x64
+		{96B2440B-023E-B2CF-0B4F-35C477590ED0}.Debug|x64.ActiveCfg = Debug|x64
+		{96B2440B-023E-B2CF-0B4F-35C477590ED0}.Debug|x64.Build.0 = Debug|x64
+		{96B2440B-023E-B2CF-0B4F-35C477590ED0}.Dist|x64.ActiveCfg = Dist|x64
+		{96B2440B-023E-B2CF-0B4F-35C477590ED0}.Dist|x64.Build.0 = Dist|x64
+		{96B2440B-023E-B2CF-0B4F-35C477590ED0}.Release|x64.ActiveCfg = Release|x64
+		{96B2440B-023E-B2CF-0B4F-35C477590ED0}.Release|x64.Build.0 = Release|x64
+		{559FD64E-C1B5-D4E4-0A2D-60067682A56C}.Debug|x64.ActiveCfg = Debug|x64
+		{559FD64E-C1B5-D4E4-0A2D-60067682A56C}.Debug|x64.Build.0 = Debug|x64
+		{559FD64E-C1B5-D4E4-0A2D-60067682A56C}.Dist|x64.ActiveCfg = Dist|x64
+		{559FD64E-C1B5-D4E4-0A2D-60067682A56C}.Dist|x64.Build.0 = Dist|x64
+		{559FD64E-C1B5-D4E4-0A2D-60067682A56C}.Release|x64.ActiveCfg = Release|x64
+		{559FD64E-C1B5-D4E4-0A2D-60067682A56C}.Release|x64.Build.0 = Release|x64
+		{88F1A057-74BE-FB62-9DD7-E90A890331F1}.Debug|x64.ActiveCfg = Debug|x64
+		{88F1A057-74BE-FB62-9DD7-E90A890331F1}.Debug|x64.Build.0 = Debug|x64
+		{88F1A057-74BE-FB62-9DD7-E90A890331F1}.Dist|x64.ActiveCfg = Dist|x64
+		{88F1A057-74BE-FB62-9DD7-E90A890331F1}.Dist|x64.Build.0 = Dist|x64
+		{88F1A057-74BE-FB62-9DD7-E90A890331F1}.Release|x64.ActiveCfg = Release|x64
+		{88F1A057-74BE-FB62-9DD7-E90A890331F1}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2C638B37-18C6-1ADC-C14B-5392AD8DE65E} = {4D61F67E-B9CB-AAF5-020A-5C9B6EB3884A}
+		{D412A3DC-407F-5ED7-0973-F634759E803F} = {4D61F67E-B9CB-AAF5-020A-5C9B6EB3884A}
+		{96B2440B-023E-B2CF-0B4F-35C477590ED0} = {15A0C35D-0158-05AB-6A5F-DE065636A09B}
+		{559FD64E-C1B5-D4E4-0A2D-60067682A56C} = {15A0C35D-0158-05AB-6A5F-DE065636A09B}
+		{88F1A057-74BE-FB62-9DD7-E90A890331F1} = {53E47842-3FC8-3998-A828-34EB942B241A}
+	EndGlobalSection
+EndGlobal
