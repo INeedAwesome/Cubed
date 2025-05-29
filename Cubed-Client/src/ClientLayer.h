@@ -7,20 +7,24 @@
 #include <glm/glm.hpp>
 #include <string>
 
+#include "Renderer/Renderer.h"
+
 namespace Cubed {
 
 	class ClientLayer : public Walnut::Layer
 	{
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
-		virtual void OnUpdate(float ts);
-		virtual void OnRender();
-		virtual void OnUIRender();
+		virtual void OnUpdate(float ts) override;
+		virtual void OnRender() override;
+		virtual void OnUIRender() override;
 
 	private:
 		void OnDataRecieved(const Walnut::Buffer buffer);
 
 	private:
+		Renderer m_Renderer;
+
 		glm::vec2 m_Position{50, 50};
 		glm::vec2 m_Velocity{};
 

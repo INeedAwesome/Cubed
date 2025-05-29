@@ -34,10 +34,15 @@ namespace Cubed
 		);
 
 		s_ScratchBuffer.Allocate(10 * 1024 * 1024); // 10 MB
+
+		m_Renderer.Init();
 	}
+
 	void ClientLayer::OnDetach()
 	{
+		m_Renderer.Shutdown();
 	}
+
 	void ClientLayer::OnUpdate(float ts)
 	{
 		Walnut::Client::ConnectionStatus connectionStatus = m_Client.GetConnectionStatus();
@@ -73,6 +78,12 @@ namespace Cubed
 
 	void ClientLayer::OnRender()
 	{
+		// Lets draw some stuff
+
+		// 1. Bind pipeline
+		// 2. Bind vertex/index buffers
+		// 3. draw call
+		m_Renderer.Render();
 	}
 
 	void ClientLayer::OnUIRender()
@@ -110,6 +121,8 @@ namespace Cubed
 
 			ImGui::End();
 		}
+
+		m_Renderer.RenderUI();
 
 	}
 	void ClientLayer::OnDataRecieved(const Walnut::Buffer buffer)
