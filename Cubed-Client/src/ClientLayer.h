@@ -25,8 +25,8 @@ namespace Cubed {
 	private:
 		Renderer m_Renderer;
 
-		glm::vec2 m_Position{50, 50};
-		glm::vec2 m_Velocity{};
+		glm::vec3 m_Position{50, 50, 0};
+		glm::vec3 m_Velocity{};
 
 		Walnut::Client m_Client;
 		std::string m_ServerAddress;
@@ -34,8 +34,8 @@ namespace Cubed {
 
 		struct PlayerData
 		{
-			glm::vec2 Position;
-			glm::vec2 Velocity;
+			glm::vec3 Position;
+			glm::vec3 Velocity;
 		};
 
 		std::mutex m_PlayerDataMutex;

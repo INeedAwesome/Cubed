@@ -83,13 +83,29 @@ namespace Cubed {
 		size_t length = stream.GetStreamPosition();
 		Walnut::Buffer packet{ stream.GetBuffer().Data, length };
 
-		m_Server.SendBufferToClient(client.ID, stream.GetBuffer()); // Doesnt work for some reason.
+		m_Server.SendBufferToClient(client.ID, stream.GetBuffer());
 		//m_Server.SendBufferToClient(client.ID, packet);
 	}
 
 	void ServerLayer::OnClientDisconnected(const Walnut::ClientInfo& client)
 	{
 		WL_INFO_TAG("Server", "Client Disconnected! ID={}", client.ID);
+
+		m_PlayerDataMutex.lock(); // Make other threads not be able to access the data.
+		{
+			m_PlayerData.erase(client.ID);
+		}
+		m_PlayerDataMutex.unlock();
+
+		Walnut::BufferStreamWriter stream(s_ScratchBuffer, 0);
+		stream.WriteRaw(PacketType::ClientDisconnect);
+		stream.WriteRaw(client.ID);
+
+		size_t length = stream.GetStreamPosition();
+		Walnut::Buffer packet{ stream.GetBuffer().Data, length };
+
+		m_Server.SendBufferToAllClients(stream.GetBuffer(), client.ID); 
+
 	}
 
 	void ServerLayer::OnDataRecieved(const Walnut::ClientInfo& client, const Walnut::Buffer buffer)
@@ -116,8 +132,8 @@ namespace Cubed {
 			m_PlayerDataMutex.lock(); // Make other threads not be able to access the data.
 			{
 				PlayerData& playerData = m_PlayerData[client.ID];
-				stream.ReadRaw<glm::vec2>(playerData.Position);
-				stream.ReadRaw<glm::vec2>(playerData.Velocity);
+				stream.ReadRaw<glm::vec3>(playerData.Position);
+				stream.ReadRaw<glm::vec3>(playerData.Velocity);
 			}
 			m_PlayerDataMutex.unlock(); 
 			break;

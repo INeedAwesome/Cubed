@@ -31,6 +31,7 @@ namespace Cubed
 		void Shutdown();
 
 		void Render();
+		void RenderCube(const glm::vec3& position);
 		void RenderUI();
 
 	private:
@@ -57,9 +58,12 @@ namespace Cubed
 		};
 
 		PushConstants m_PushConstants;
-		glm::vec3 m_CubePosition;
-		glm::vec3 m_CubeRotation;
+		glm::vec3 m_CubePosition{};
+		glm::vec3 m_CubeRotation{};
 
+		glm::vec3 m_CameraPosition{ 0, 0, 3 };
+		glm::vec3 m_CameraRotation{};
+		float m_CubeScale = 0.02f;
 	};
 }
 

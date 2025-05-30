@@ -63,7 +63,8 @@ namespace Cubed
 
 	
 
-		glm::mat4 cameraTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 3.0f));
+		glm::mat4 cameraTransform = glm::translate(glm::mat4(1.0f), m_CameraPosition)
+			* glm::eulerAngleXYZ(glm::radians(m_CameraRotation.x), glm::radians(m_CameraRotation.y), glm::radians(m_CameraRotation.z));;
 
 		m_PushConstants.ViewProjection = glm::perspectiveFov(glm::radians(70.0f), vpWidth, vpHeight, 0.01f, 1000.0f)
 			* glm::inverse(cameraTransform);
@@ -100,12 +101,63 @@ namespace Cubed
 		vkCmdDrawIndexed(commandBuffer, m_IndexBuffer.BufferSize / sizeof(uint32_t), 1, 0, 0, 0);
 	}
 
+	void Renderer::RenderCube(const glm::vec3& position)
+	{
+		glm::vec3 translation = position * m_CubeScale;
+
+		VkCommandBuffer commandBuffer = Walnut::Application::GetActiveCommandBuffer();
+		ImGui_ImplVulkanH_Window* windowData = Walnut::Application::GetMainWindowData();
+
+		float vpWidth = (float)windowData->Width;
+		float vpHeight = (float)windowData->Height;
+
+		// Bind the graphics pipeline.
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
+
+		glm::mat4 cameraTransform = glm::translate(glm::mat4(1.0f), m_CameraPosition)
+			* glm::eulerAngleXYZ(glm::radians(m_CameraRotation.x), glm::radians(m_CameraRotation.y), glm::radians(m_CameraRotation.z));;
+
+		m_PushConstants.ViewProjection = glm::perspectiveFov(glm::radians(70.0f), vpWidth, vpHeight, 0.01f, 1000.0f)
+			* glm::inverse(cameraTransform);
+
+		m_PushConstants.Transform = glm::translate(glm::mat4(1.0f), translation)
+			* glm::eulerAngleXYZ(glm::radians(m_CubeRotation.x), glm::radians(m_CubeRotation.y), glm::radians(m_CubeRotation.z));
+
+		vkCmdPushConstants(commandBuffer, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &m_PushConstants);
+
+		VkDeviceSize offset{ 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_VertexBuffer.Handle, &offset);
+
+		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer.Handle, offset, VK_INDEX_TYPE_UINT32);
+
+		VkViewport vp{
+			.y = vpHeight,
+			.width = vpWidth,
+			.height = -vpHeight,
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f };
+		// Set viewport dynamically
+		vkCmdSetViewport(commandBuffer, 0, 1, &vp);
+
+		VkRect2D scissor{
+			.extent = {.width = (uint32_t)windowData->Width, .height = (uint32_t)windowData->Height} };
+		// Set scissor dynamically
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+		// Draw three vertices with one instance from the currently bound vertex bound.
+		vkCmdDrawIndexed(commandBuffer, m_IndexBuffer.BufferSize / sizeof(uint32_t), 1, 0, 0, 0);
+	}
+
 	void Renderer::RenderUI()
 	{
 		ImGui::Begin("Controls");
 
 		ImGui::DragFloat3("Position", glm::value_ptr(m_CubePosition), 0.05f);
 		ImGui::DragFloat3("Rotation", glm::value_ptr(m_CubeRotation), 0.15f);
+
+		ImGui::DragFloat3("Camera Position", glm::value_ptr(m_CameraPosition), 0.05f);
+		ImGui::DragFloat3("Camera Rotation", glm::value_ptr(m_CameraRotation), 0.05f);
+		ImGui::DragFloat("m_CubeScale", &m_CubeScale, 0.005f);
 
 		ImGui::End();
 

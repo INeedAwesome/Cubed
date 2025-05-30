@@ -39,7 +39,11 @@ namespace Cubed
 	}
 
 	void ClientLayer::OnDetach()
+
 	{
+		m_Client.Disconnect();
+
+
 		m_Renderer.Shutdown();
 	}
 
@@ -49,7 +53,7 @@ namespace Cubed
 		if (connectionStatus != Walnut::Client::ConnectionStatus::Connected)
 			return;
 
-		glm::vec2 dir{};
+		glm::vec3 dir{};
 		if (Walnut::Input::IsKeyDown(Walnut::KeyCode::A))
 			dir.x = -1;
 		if (Walnut::Input::IsKeyDown(Walnut::KeyCode::D))
@@ -59,19 +63,19 @@ namespace Cubed
 		if (Walnut::Input::IsKeyDown(Walnut::KeyCode::S))
 			dir.y = 1;
 
-		dir = glm::length(dir) > 0 ? glm::normalize(dir) : glm::vec2{0, 0};
+		dir = glm::length(dir) > 0 ? glm::normalize(dir) : glm::vec3{0, 0, 0};
 		if (glm::length(dir) > 0)
 		{
 			const float speed = 500;
 			m_Velocity = dir * speed;
 		}
-		m_Velocity = glm::mix(m_Velocity, glm::vec2(0, 0), 5 * ts);
+		m_Velocity = glm::mix(m_Velocity, glm::vec3(0), 5 * ts);
 		m_Position += m_Velocity * ts;
 
 		Walnut::BufferStreamWriter stream(s_ScratchBuffer, 0);
 		stream.WriteRaw(PacketType::ClientUpdate);
-		stream.WriteRaw<glm::vec2>(m_Position);
-		stream.WriteRaw<glm::vec2>(m_Velocity);
+		stream.WriteRaw<glm::vec3>(m_Position);
+		stream.WriteRaw<glm::vec3>(m_Velocity);
 		m_Client.SendBuffer(stream.GetBuffer());
 
 	}
@@ -83,15 +87,10 @@ namespace Cubed
 		// 1. Bind pipeline
 		// 2. Bind vertex/index buffers
 		// 3. draw call
-		m_Renderer.Render();
-	}
-
-	void ClientLayer::OnUIRender()
-	{
 		Walnut::Client::ConnectionStatus connectionStatus = m_Client.GetConnectionStatus();
 		if (connectionStatus == Walnut::Client::ConnectionStatus::Connected)
 		{
-			DrawRect(m_Position, { 50, 50 }, 0xFFFFFFFF);
+			m_Renderer.RenderCube(m_Position);
 
 			m_PlayerDataMutex.lock();
 			std::map<uint32_t, PlayerData> playerData = m_PlayerData;
@@ -101,7 +100,32 @@ namespace Cubed
 			{
 				if (id == m_PlayerID)
 					continue;
-				DrawRect(data.Position, { 50, 50 }, 0xFF33FF44);
+				m_Renderer.RenderCube(data.Position);
+			}
+		}
+	}
+
+	void ClientLayer::OnUIRender()
+	{
+		m_Renderer.RenderUI();
+
+		Walnut::Client::ConnectionStatus connectionStatus = m_Client.GetConnectionStatus();
+		if (connectionStatus == Walnut::Client::ConnectionStatus::Connected)
+		{
+			if (0)
+			{
+				DrawRect(m_Position, { 50, 50 }, 0xFFFFFFFF);
+
+				m_PlayerDataMutex.lock();
+				std::map<uint32_t, PlayerData> playerData = m_PlayerData;
+				m_PlayerDataMutex.unlock();
+
+				for (const auto& [id, data] : playerData)
+				{
+					if (id == m_PlayerID)
+						continue;
+					DrawRect(data.Position, { 50, 50 }, 0xFF33FF44);
+				}
 			}
 		}
 		else
@@ -122,7 +146,7 @@ namespace Cubed
 			ImGui::End();
 		}
 
-		m_Renderer.RenderUI();
+		
 
 	}
 	void ClientLayer::OnDataRecieved(const Walnut::Buffer buffer)
@@ -163,7 +187,17 @@ namespace Cubed
 			break;
 		}
 		case PacketType::ClientDisconnect:
+		{
+			m_PlayerDataMutex.lock(); // Make other threads not be able to access the data.
+			{
+				uint32_t clientDisconnected = 0;
+				stream.ReadRaw<uint32_t>(clientDisconnected);
+				if (clientDisconnected != 0)
+					m_PlayerData.erase(clientDisconnected);
+			}
+			m_PlayerDataMutex.unlock();
 			break;
+		}
 		case PacketType::ClientUpdateResponse:
 			break;
 		case PacketType::MessageHistory:
