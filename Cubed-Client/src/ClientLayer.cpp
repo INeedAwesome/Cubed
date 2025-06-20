@@ -39,7 +39,6 @@ namespace Cubed
 	}
 
 	void ClientLayer::OnDetach()
-
 	{
 		m_Client.Disconnect();
 
@@ -50,9 +49,7 @@ namespace Cubed
 	void ClientLayer::OnUpdate(float ts)
 	{
 		Walnut::Client::ConnectionStatus connectionStatus = m_Client.GetConnectionStatus();
-		if (connectionStatus != Walnut::Client::ConnectionStatus::Connected)
-			return;
-
+		
 		glm::vec3 dir{};
 		if (Walnut::Input::IsKeyDown(Walnut::KeyCode::A))
 			dir.x = -1;
@@ -67,16 +64,21 @@ namespace Cubed
 		if (glm::length(dir) > 0)
 		{
 			const float speed = 500;
-			m_Velocity = dir * speed;
+			m_PlayerVelocity = dir * speed;
 		}
-		m_Velocity = glm::mix(m_Velocity, glm::vec3(0), 5 * ts);
-		m_Position += m_Velocity * ts;
+		m_PlayerVelocity = glm::mix(m_PlayerVelocity, glm::vec3(0), 5 * ts);
+		m_PlayerPosition += m_PlayerVelocity * ts;
 
-		Walnut::BufferStreamWriter stream(s_ScratchBuffer, 0);
-		stream.WriteRaw(PacketType::ClientUpdate);
-		stream.WriteRaw<glm::vec3>(m_Position);
-		stream.WriteRaw<glm::vec3>(m_Velocity);
-		m_Client.SendBuffer(stream.GetBuffer());
+		m_PlayerRotation.y += ts * 30;
+
+		if (connectionStatus == Walnut::Client::ConnectionStatus::Connected)
+		{
+			Walnut::BufferStreamWriter stream(s_ScratchBuffer, 0);
+			stream.WriteRaw(PacketType::ClientUpdate);
+			stream.WriteRaw<glm::vec3>(m_PlayerPosition);
+			stream.WriteRaw<glm::vec3>(m_PlayerVelocity);
+			m_Client.SendBuffer(stream.GetBuffer());
+		}
 
 	}
 
@@ -87,10 +89,13 @@ namespace Cubed
 		// 1. Bind pipeline
 		// 2. Bind vertex/index buffers
 		// 3. draw call
+		
+		m_Renderer.BeginScene(m_Camera);
+
 		Walnut::Client::ConnectionStatus connectionStatus = m_Client.GetConnectionStatus();
-		if (connectionStatus == Walnut::Client::ConnectionStatus::Connected)
+		//if (connectionStatus == Walnut::Client::ConnectionStatus::Connected)
 		{
-			m_Renderer.RenderCube(m_Position);
+			m_Renderer.RenderCube(m_PlayerPosition, m_PlayerRotation);
 
 			m_PlayerDataMutex.lock();
 			std::map<uint32_t, PlayerData> playerData = m_PlayerData;
@@ -100,21 +105,36 @@ namespace Cubed
 			{
 				if (id == m_PlayerID)
 					continue;
-				m_Renderer.RenderCube(data.Position);
+				m_Renderer.RenderCube(data.Position, {0, 0, 0});
 			}
 		}
+
+		m_Renderer.EndScene();
 	}
 
 	void ClientLayer::OnUIRender()
 	{
 		m_Renderer.RenderUI();
 
+		ImGui::Begin("Controls");
+
+		ImGui::DragFloat3("Player Pos", glm::value_ptr(m_PlayerPosition), 0.05f);
+		ImGui::DragFloat3("Player Rot", glm::value_ptr(m_PlayerRotation), 0.05f);
+
+		ImGui::DragFloat3("Camera Pos", glm::value_ptr(m_Camera.Position), 0.05f);
+		ImGui::DragFloat3("Camera Rot", glm::value_ptr(m_Camera.Rotation), 0.05f);
+
+		ImGui::End();
+
+
+		return;
+
 		Walnut::Client::ConnectionStatus connectionStatus = m_Client.GetConnectionStatus();
 		if (connectionStatus == Walnut::Client::ConnectionStatus::Connected)
 		{
 			if (0)
 			{
-				DrawRect(m_Position, { 50, 50 }, 0xFFFFFFFF);
+				DrawRect(m_PlayerPosition, { 50, 50 }, 0xFFFFFFFF);
 
 				m_PlayerDataMutex.lock();
 				std::map<uint32_t, PlayerData> playerData = m_PlayerData;

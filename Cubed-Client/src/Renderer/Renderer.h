@@ -8,11 +8,7 @@
 
 #include <imgui.h>
 
-struct Vertex
-{
-	glm::vec3 position;
-	glm::vec3 color;
-};
+
 
 namespace Cubed
 {
@@ -24,14 +20,30 @@ namespace Cubed
 		VkBufferUsageFlagBits Usage = VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
 	};
 
+	struct Camera
+	{
+		glm::vec3 Position{};
+		glm::vec3 Rotation{};
+	};
+
+	struct Vertex
+	{
+		glm::vec3 Position;
+		glm::vec3 Color;
+		glm::vec3 Normal;
+	};
+
 	class Renderer
 	{
 	public:
 		void Init();
 		void Shutdown();
 
+		void BeginScene(const Camera& camera);
+		void EndScene();
+
 		void Render();
-		void RenderCube(const glm::vec3& position);
+		void RenderCube(const glm::vec3& position, const glm::vec3& rotation);
 		void RenderUI();
 
 	private:
@@ -58,12 +70,7 @@ namespace Cubed
 		};
 
 		PushConstants m_PushConstants;
-		glm::vec3 m_CubePosition{};
-		glm::vec3 m_CubeRotation{};
 
-		glm::vec3 m_CameraPosition{ 0, 0, 3 };
-		glm::vec3 m_CameraRotation{};
-		float m_CubeScale = 0.02f;
 	};
 }
 

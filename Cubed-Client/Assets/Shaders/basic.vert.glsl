@@ -3,14 +3,10 @@
 
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Color;
+layout(location = 2) in vec3 a_Normal;
 
-layout(location = 0) out vec3 out_color;
-
-vec3 triangle_colors[3] = vec3[](
-	vec3(1.0, 0.0, 0.0),
-	vec3(0.0, 1.0, 0.0),
-	vec3(0.0, 0.0, 1.0)
-);
+layout(location = 0) out vec3 out_Color;
+layout(location = 1) out vec3 out_Normal;
 
 layout (push_constant) uniform PushConstants
 {
@@ -26,5 +22,7 @@ void main()
 					u_PushConstants.Transform * 
 					vec4(a_Position, 1.0);
 
-	out_color = a_Color;
+	// some madness and badness https://youtu.be/QFf91u8bZlk?t=2854 
+	out_Normal = normalize(transpose(inverse(mat3(u_PushConstants.Transform))) * a_Normal);
+	out_Color = a_Color;
 }

@@ -50,34 +50,22 @@ namespace Cubed
 
 	}
 
-	void Renderer::Render()
+	void Renderer::BeginScene(const Camera& camera)
 	{
 		VkCommandBuffer commandBuffer = Walnut::Application::GetActiveCommandBuffer();
 		ImGui_ImplVulkanH_Window* windowData = Walnut::Application::GetMainWindowData();
-
 		float vpWidth = (float)windowData->Width;
 		float vpHeight = (float)windowData->Height;
 
-		// Bind the graphics pipeline.
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
-
-	
-
-		glm::mat4 cameraTransform = glm::translate(glm::mat4(1.0f), m_CameraPosition)
-			* glm::eulerAngleXYZ(glm::radians(m_CameraRotation.x), glm::radians(m_CameraRotation.y), glm::radians(m_CameraRotation.z));;
+		glm::mat4 cameraTransform = glm::translate(glm::mat4(1.0f), camera.Position)
+			* glm::eulerAngleXYZ(glm::radians(camera.Rotation.x), glm::radians(camera.Rotation.y), glm::radians(camera.Rotation.z));
 
 		m_PushConstants.ViewProjection = glm::perspectiveFov(glm::radians(70.0f), vpWidth, vpHeight, 0.01f, 1000.0f)
 			* glm::inverse(cameraTransform);
 
-		m_PushConstants.Transform = glm::translate(glm::mat4(1.0f), m_CubePosition)
-			* glm::eulerAngleXYZ(glm::radians(m_CubeRotation.x), glm::radians(m_CubeRotation.y), glm::radians(m_CubeRotation.z));
 
-		vkCmdPushConstants(commandBuffer, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &m_PushConstants);
-
-		VkDeviceSize offset{ 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_VertexBuffer.Handle, &offset);
-
-		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer.Handle, offset, VK_INDEX_TYPE_UINT32);
+		// Bind the graphics pipeline.
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
 
 		VkViewport vp{
 			.y = vpHeight,
@@ -93,74 +81,34 @@ namespace Cubed
 		// Set scissor dynamically
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		//// Bind the vertex buffer to source the draw calls from.
-		//VkDeviceSize offset = { 0 };
-		//vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertex_buffer, &offset);
-
-		// Draw three vertices with one instance from the currently bound vertex bound.
-		vkCmdDrawIndexed(commandBuffer, m_IndexBuffer.BufferSize / sizeof(uint32_t), 1, 0, 0, 0);
 	}
 
-	void Renderer::RenderCube(const glm::vec3& position)
+	void Renderer::EndScene()
 	{
-		glm::vec3 translation = position * m_CubeScale;
+
+	}
+
+	void Renderer::RenderCube(const glm::vec3& position, const glm::vec3& rotation)
+	{
+		m_PushConstants.Transform = glm::translate(glm::mat4(1.0f), position)
+			* glm::eulerAngleXYZ(glm::radians(rotation.x), glm::radians(rotation.y), glm::radians(rotation.z));
 
 		VkCommandBuffer commandBuffer = Walnut::Application::GetActiveCommandBuffer();
-		ImGui_ImplVulkanH_Window* windowData = Walnut::Application::GetMainWindowData();
-
-		float vpWidth = (float)windowData->Width;
-		float vpHeight = (float)windowData->Height;
 
 		// Bind the graphics pipeline.
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
-
-		glm::mat4 cameraTransform = glm::translate(glm::mat4(1.0f), m_CameraPosition)
-			* glm::eulerAngleXYZ(glm::radians(m_CameraRotation.x), glm::radians(m_CameraRotation.y), glm::radians(m_CameraRotation.z));;
-
-		m_PushConstants.ViewProjection = glm::perspectiveFov(glm::radians(70.0f), vpWidth, vpHeight, 0.01f, 1000.0f)
-			* glm::inverse(cameraTransform);
-
-		m_PushConstants.Transform = glm::translate(glm::mat4(1.0f), translation)
-			* glm::eulerAngleXYZ(glm::radians(m_CubeRotation.x), glm::radians(m_CubeRotation.y), glm::radians(m_CubeRotation.z));
 
 		vkCmdPushConstants(commandBuffer, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &m_PushConstants);
 
 		VkDeviceSize offset{ 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_VertexBuffer.Handle, &offset);
-
 		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer.Handle, offset, VK_INDEX_TYPE_UINT32);
 
-		VkViewport vp{
-			.y = vpHeight,
-			.width = vpWidth,
-			.height = -vpHeight,
-			.minDepth = 0.0f,
-			.maxDepth = 1.0f };
-		// Set viewport dynamically
-		vkCmdSetViewport(commandBuffer, 0, 1, &vp);
-
-		VkRect2D scissor{
-			.extent = {.width = (uint32_t)windowData->Width, .height = (uint32_t)windowData->Height} };
-		// Set scissor dynamically
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-		// Draw three vertices with one instance from the currently bound vertex bound.
-		vkCmdDrawIndexed(commandBuffer, m_IndexBuffer.BufferSize / sizeof(uint32_t), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, m_IndexBuffer.BufferSize / sizeof(uint32_t), 1, 0, 0, 0); 
 	}
 
 	void Renderer::RenderUI()
 	{
-		ImGui::Begin("Controls");
-
-		ImGui::DragFloat3("Position", glm::value_ptr(m_CubePosition), 0.05f);
-		ImGui::DragFloat3("Rotation", glm::value_ptr(m_CubeRotation), 0.15f);
-
-		ImGui::DragFloat3("Camera Position", glm::value_ptr(m_CameraPosition), 0.05f);
-		ImGui::DragFloat3("Camera Rotation", glm::value_ptr(m_CameraRotation), 0.05f);
-		ImGui::DragFloat("m_CubeScale", &m_CubeScale, 0.005f);
-
-		ImGui::End();
-
 	}
 
 	void Renderer::InitPipeline()
@@ -197,19 +145,25 @@ namespace Cubed
 		};
 
 		// Define the vertex input attribute.
-		std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions{
+		std::array<VkVertexInputAttributeDescription, 3> attribute_descriptions{
 			{
 				{
 					.location = 0, 
 					.binding = 0, 
 					.format = VK_FORMAT_R32G32B32_SFLOAT, 
-					.offset = offsetof(Vertex, position)
+					.offset = offsetof(Vertex, Position)
 				}, 
 				{
 					.location = 1, 
 					.binding = 0, 
 					.format = VK_FORMAT_R32G32B32_SFLOAT, 
-					.offset = offsetof(Vertex, color)
+					.offset = offsetof(Vertex, Color)
+				},
+				{
+					.location = 2,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32B32_SFLOAT,
+					.offset = offsetof(Vertex, Normal)
 				}
 			}
 		};
@@ -260,22 +214,6 @@ namespace Cubed
 			.pDynamicStates = dynamics.data() };
 
 		// Load our SPIR-V shaders.
-
-		// Samples support different shading languages, all of which are offline compiled to SPIR-V, the shader format that Vulkan uses.
-		// The shading language to load for can be selected via command line
-	/*	std::string shader_folder{ "" };
-		switch (get_shading_language())
-		{
-		case vkb::ShadingLanguage::HLSL:
-			shader_folder = "hlsl";
-			break;
-		case vkb::ShadingLanguage::SLANG:
-			shader_folder = "slang";
-			break;
-		default:
-			shader_folder = "glsl";
-		}*/
-
 		std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages{};
 
 		// Vertex stage of the pipeline
@@ -319,39 +257,83 @@ namespace Cubed
 	{
 		VkDevice device = GetVulkanInfo()->Device;
 
-		glm::vec3 vertexData[8] = { 
+		glm::vec3 vertexData[8] = {
 			// front
-			glm::vec3(-0.5f, -0.5f, 0.5f), // bottom left
-			glm::vec3(-0.5f,  0.5f, 0.5f), // top left
-			glm::vec3( 0.5f,  0.5f, 0.5f), // top right
-			glm::vec3( 0.5f, -0.5f, 0.5f), //  bottom right
+			glm::vec3(-0.5f, -0.5f, 0.5f), // front bottom left
+			glm::vec3(-0.5f,  0.5f, 0.5f), // front top left
+			glm::vec3( 0.5f,  0.5f, 0.5f), // front top right
+			glm::vec3( 0.5f, -0.5f, 0.5f), // front bottom right
 
 			// back
-			glm::vec3( 0.5f, -0.5f, -0.5f), // bottom left
-			glm::vec3( 0.5f,  0.5f, -0.5f), // top left
-			glm::vec3(-0.5f,  0.5f, -0.5f), // top right
-			glm::vec3(-0.5f, -0.5f, -0.5f)  //  bottom right
+			glm::vec3( 0.5f, -0.5f, -0.5f), // back bottom left
+			glm::vec3( 0.5f,  0.5f, -0.5f), // back top left
+			glm::vec3(-0.5f,  0.5f, -0.5f),// back top right
+			glm::vec3(-0.5f, -0.5f, -0.5f) // back bottom right
 		};
 
-		uint32_t indices[36] = { 
-			0, 1, 2, 2, 3, 0, // Front
-			3, 2, 5, 5, 4, 3, // Right
-			4, 5, 6, 6, 7, 4, // Back
-			7, 6, 1, 1, 0, 7, // Left
-			1, 6, 5, 5, 2, 1, // Top
-			7, 0, 3, 3, 4, 7  // Bottom
+		glm::vec3 normals[6] = {
+			glm::vec3( 0,  0,  1), // Front
+			glm::vec3( 1,  0,  0), // Right
+			glm::vec3( 0,  0, -1), // Back
+			glm::vec3(-1,  0,  0), // Left 
+			glm::vec3( 0,  1,  0), // Top
+			glm::vec3( 0, -1,  0), // Bottom
 		};
+
+		//uint32_t indices[36] = { 
+		//	0, 1, 2, 2, 3, 0, // Front
+		//	3, 2, 5, 5, 4, 3, // Right
+		//	4, 5, 6, 6, 7, 4, // Back
+		//	7, 6, 1, 1, 0, 7, // Left
+		//	1, 6, 5, 5, 2, 1, // Top
+		//	7, 0, 3, 3, 4, 7  // Bottom
+		//};
+
+		std::array<uint32_t, 36> indices;
+		uint32_t offset = 0;
+		for (int i = 0; i < 36; i+=6)
+		{
+			indices[i + 0] = 0 + offset;
+			indices[i + 1] = 1 + offset;
+			indices[i + 2] = 2 + offset;
+			indices[i + 3] = 2 + offset;
+			indices[i + 4] = 3 + offset;
+			indices[i + 5] = 0 + offset;
+
+			offset += 4;
+		}
 		
-		Vertex vertices[8] = {
-			{vertexData[0], glm::vec3{1, 0, 0}}, // pos 1, color red
-			{vertexData[1], glm::vec3{0, 1, 0}}, // pos 2, color green
-			{vertexData[2], glm::vec3{0, 0, 1}}, // pos 3, color blue
-			{vertexData[3], glm::vec3{1, 1, 1}}, // pos 4, color blue
+		Vertex vertices[24] = {
+			// position,    color,				normal
+			{vertexData[0], glm::vec3{1, 0, 0}, normals[0]}, // Front
+			{vertexData[1], glm::vec3{0, 1, 0}, normals[0]},
+			{vertexData[2], glm::vec3{0, 0, 1}, normals[0]},
+			{vertexData[3], glm::vec3{1, 1, 1}, normals[0]},
 
-			{vertexData[4], glm::vec3{1, 0, 0}}, 
-			{vertexData[5], glm::vec3{0, 1, 0}}, 
-			{vertexData[6], glm::vec3{0, 0, 1}}, 
-			{vertexData[7], glm::vec3{1, 1, 1}}  
+			{vertexData[3], glm::vec3{1, 0, 0}, normals[1]}, // Right
+			{vertexData[2], glm::vec3{0, 1, 0}, normals[1]},
+			{vertexData[5], glm::vec3{0, 0, 1}, normals[1]},
+			{vertexData[4], glm::vec3{1, 1, 1}, normals[1]},
+
+			{vertexData[4], glm::vec3{1, 0, 0}, normals[2]}, // Back
+			{vertexData[5], glm::vec3{0, 1, 0}, normals[2]},
+			{vertexData[6], glm::vec3{0, 0, 1}, normals[2]},
+			{vertexData[7], glm::vec3{1, 1, 1}, normals[2]},
+
+			{vertexData[7], glm::vec3{1, 0, 0}, normals[3]}, // Left
+			{vertexData[6], glm::vec3{0, 1, 0}, normals[3]},
+			{vertexData[1], glm::vec3{0, 0, 1}, normals[3]},
+			{vertexData[0], glm::vec3{1, 1, 1}, normals[3]},
+
+			{vertexData[1], glm::vec3{1, 0, 0}, normals[4]}, // Top
+			{vertexData[6], glm::vec3{0, 1, 0}, normals[4]},
+			{vertexData[5], glm::vec3{0, 0, 1}, normals[4]},
+			{vertexData[2], glm::vec3{1, 1, 1}, normals[4]},
+
+			{vertexData[7], glm::vec3{1, 0, 0}, normals[5]}, // Bottom
+			{vertexData[0], glm::vec3{0, 1, 0}, normals[5]},
+			{vertexData[3], glm::vec3{0, 0, 1}, normals[5]},
+			{vertexData[4], glm::vec3{1, 1, 1}, normals[5]},
 		};
 
 		// Create vertex and index buffer
@@ -359,7 +341,7 @@ namespace Cubed
 		CreateOrResizeBuffer(m_VertexBuffer, sizeof(vertices));
 
 		m_IndexBuffer.Usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		CreateOrResizeBuffer(m_IndexBuffer, sizeof(indices));
+		CreateOrResizeBuffer(m_IndexBuffer, indices.size() * sizeof(uint32_t));
 
 		// Map memory from the cpu to the gpu
 		Vertex* vbMemory{};
@@ -368,7 +350,7 @@ namespace Cubed
 
 		uint32_t* ibMemory{};
 		VK_CHECK(vkMapMemory(device, m_IndexBuffer.Memory, 0, sizeof(indices), 0, (void**)&ibMemory));
-		memcpy_s(ibMemory, sizeof(indices), indices, sizeof(indices));
+		memcpy_s(ibMemory, indices.size() * sizeof(uint32_t), indices.data(), indices.size() * sizeof(uint32_t));
 
 		VkMappedMemoryRange range[2] = {};
 		range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
