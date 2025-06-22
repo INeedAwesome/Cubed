@@ -41,6 +41,13 @@ project "Cubed-Client"
 		defines { "WL_PLATFORM_WINDOWS" }
 		buildoptions { "/utf-8" }
 
+		
+
+	filter "configurations:Debug"
+		defines { "WL_DEBUG" }
+		runtime "Debug"
+		symbols "On"
+		
 		postbuildcommands 
 		{
 			'{COPY} "../%{WalnutNetworkingBinDir}/GameNetworkingSockets.dll" "%{cfg.targetdir}"',
@@ -48,16 +55,18 @@ project "Cubed-Client"
 			'{COPY} "../%{WalnutNetworkingBinDir}/libprotobufd.dll" "%{cfg.targetdir}"',
 		}
 
-	filter "configurations:Debug"
-		defines { "WL_DEBUG" }
-		runtime "Debug"
-		symbols "On"
-
 	filter "configurations:Release"
 		defines { "WL_RELEASE" }
 		runtime "Release"
 		optimize "On"
 		symbols "On"
+
+		postbuildcommands 
+		{
+			'{COPY} "../%{WalnutNetworkingBinDir}/GameNetworkingSockets.dll" "%{cfg.targetdir}"',
+			'{COPY} "../%{WalnutNetworkingBinDir}/libcrypto-3-x64.dll" "%{cfg.targetdir}"',
+			'{COPY} "../%{WalnutNetworkingBinDir}/libprotobuf.dll" "%{cfg.targetdir}"',
+		}
 
 	filter "configurations:Dist"
 		kind "WindowedApp"
@@ -65,3 +74,12 @@ project "Cubed-Client"
 		runtime "Release"
 		optimize "On"
 		symbols "Off"
+
+		WalnutNetworkingBinDirDist = "Walnut/Walnut-Modules/Walnut-Networking/vendor/GameNetworkingSockets/bin/%{cfg.system}/Release/"
+
+		postbuildcommands 
+		{
+			'{COPY} "../%{WalnutNetworkingBinDirDist}/GameNetworkingSockets.dll" "%{cfg.targetdir}"',
+			'{COPY} "../%{WalnutNetworkingBinDirDist}/libcrypto-3-x64.dll" "%{cfg.targetdir}"',
+			'{COPY} "../%{WalnutNetworkingBinDirDist}/libprotobuf.dll" "%{cfg.targetdir}"',
+		}

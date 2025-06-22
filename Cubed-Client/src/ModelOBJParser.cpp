@@ -1,5 +1,7 @@
 #include "ModelOBJParser.h"
 
+#include <sstream>
+
 namespace Cubed {
 
 	OBJModel ReadModelFromDisk(const std::string& filepath)
@@ -96,9 +98,8 @@ namespace Cubed {
 				}
 			}
 		}
+		stream.close();
 		return model;
 	}
-	
-
 }
 

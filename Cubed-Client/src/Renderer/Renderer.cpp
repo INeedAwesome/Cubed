@@ -302,10 +302,15 @@ namespace Cubed
 	void Renderer::InitBuffers()
 	{
 		VkDevice device = GetVulkanInfo()->Device;
+		
+		Timer timer;
 
-		OBJModel model = ReadModelFromDisk("Assets/Cube.obj");
+		std::string filepath = "Assets/monkeyface.obj";
+		OBJModel model = ReadModelFromDisk(filepath);
+		WL_INFO("Reading '{}' took: {}ms", filepath, timer.ElapsedMillis());
+
 		uint32_t modelSize = model.ModelSize();
-		uint32_t indicesSize = model.Indices.size() * sizeof(uint32_t);
+		uint32_t indicesSize = model.IndicesSize();
 
 		// Create vertex and index buffer
 		m_VertexBuffer.Usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;

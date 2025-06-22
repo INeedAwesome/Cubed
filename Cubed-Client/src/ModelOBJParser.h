@@ -3,7 +3,8 @@
 #include <string>
 #include <fstream>
 #include <vector>
-#include <sstream>
+
+#include "Timer.h"
 
 #include <glm/glm.hpp>
 
@@ -36,7 +37,11 @@ namespace Cubed {
 		std::vector<Vertex> Vertices;
 		std::vector<uint32_t> Indices;
 
+		// Size in bytes
 		const uint32_t ModelSize() const { return Vertices.size() * sizeof(Vertex); }
+
+		// Size in bytes
+		const uint32_t IndicesSize() const { return Indices.size() * sizeof(uint32_t); }
 	};
 
 	OBJModel ReadModelFromDisk(const std::string& filepath);
