@@ -2,11 +2,12 @@
 
 
 layout(location = 0) in vec3 a_Position;
-layout(location = 1) in vec3 a_Color;
-layout(location = 2) in vec3 a_Normal;
+layout(location = 1) in vec3 a_Normal;
+layout(location = 2) in vec2 a_UV;
 
 layout(location = 0) out vec3 out_Color;
 layout(location = 1) out vec3 out_Normal;
+layout(location = 2) out vec2 out_UV;
 
 layout (push_constant) uniform PushConstants
 {
@@ -22,7 +23,8 @@ void main()
 					u_PushConstants.Transform * 
 					vec4(a_Position, 1.0);
 
-	// some madness and badness https://youtu.be/QFf91u8bZlk?t=2854 
+	// Gets the rotation of the transform https://youtu.be/QFf91u8bZlk?t=2854 
+	//			0 -> 1     scaling   idk     removes position offset
 	out_Normal = normalize(transpose(inverse(mat3(u_PushConstants.Transform))) * a_Normal);
-	out_Color = a_Color;
+	out_UV = a_UV;
 }

@@ -5,10 +5,11 @@
 #include <glm/glm.hpp>
 
 #include <filesystem>
+#include <memory>
 
 #include <imgui.h>
 
-
+#include "Texture.h"
 
 namespace Cubed
 {
@@ -26,12 +27,7 @@ namespace Cubed
 		glm::vec3 Rotation{};
 	};
 
-	struct Vertex
-	{
-		glm::vec3 Position;
-		glm::vec3 Color;
-		glm::vec3 Normal;
-	};
+
 
 	class Renderer
 	{
@@ -45,6 +41,9 @@ namespace Cubed
 		void Render();
 		void RenderCube(const glm::vec3& position, const glm::vec3& rotation);
 		void RenderUI();
+
+	public:
+		static uint32_t GetVulkanMemoryType(VkMemoryPropertyFlags properties, uint32_t type_bits);
 
 	private:
 		void InitPipeline();
@@ -60,6 +59,9 @@ namespace Cubed
 		VkPipeline m_GraphicsPipeline = nullptr;
 		VkPipelineLayout m_PipelineLayout = nullptr;
 
+		VkDescriptorSetLayout m_DescriptorSetLayout = nullptr;
+		VkDescriptorSet m_DescriptorSet = nullptr;
+
 		Buffer m_VertexBuffer, m_IndexBuffer;
 
 		struct PushConstants
@@ -70,6 +72,8 @@ namespace Cubed
 		};
 
 		PushConstants m_PushConstants;
+
+		std::shared_ptr<Texture> m_Texture;
 
 	};
 }

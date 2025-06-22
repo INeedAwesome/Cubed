@@ -12,10 +12,16 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "../ModelOBJParser.h"
+
+//#define STB_IMAGE_IMPLEMENTATION
+//#include "../stb_image.h"
+#include "../stb_image.h"
+
 namespace Cubed
 {
 
-	static uint32_t ImGui_ImplVulkan_MemoryType(VkMemoryPropertyFlags properties, uint32_t type_bits)
+	uint32_t Renderer::GetVulkanMemoryType(VkMemoryPropertyFlags properties, uint32_t type_bits)
 	{
 		VkPhysicalDevice physicalDevice = Cubed::GetVulkanInfo()->PhysicalDevice;
 		VkPhysicalDeviceMemoryProperties prop;
@@ -26,18 +32,53 @@ namespace Cubed
 		return 0xFFFFFFFF; // Unable to find memoryType
 	}
 
-
 	void Renderer::Init()
 	{
+		WL_INFO("Renderer initializing!");
+
+		int x{}, y{}, n{};
+		stbi_set_flip_vertically_on_load(1);
+		uint8_t* imageData = stbi_load("Assets/Images/skybox.png", &x, &y, &n, 4);
+		Walnut::Buffer textureBuffer(imageData, x*y*n);
+		m_Texture = std::make_shared<Texture>(x, y, textureBuffer);
+
+		VkDevice device = GetVulkanInfo()->Device;
+		
+		//VkSampler sampler[1] = { bd->FontSampler };
+		VkDescriptorSetLayoutBinding binding{};
+		binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		binding.descriptorCount = 1;
+		binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		//binding[0].pImmutableSamplers = sampler;
+		VkDescriptorSetLayoutCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		info.bindingCount = 1;
+		info.pBindings = &binding;
+		VK_CHECK(vkCreateDescriptorSetLayout(device, &info, nullptr, &m_DescriptorSetLayout));
+		
+		m_DescriptorSet = Walnut::Application::AllocateDescriptorSet(m_DescriptorSetLayout);
+
+		VkWriteDescriptorSet wds{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		wds.descriptorCount = 1;
+		wds.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		wds.dstSet = m_DescriptorSet;
+		wds.dstBinding = 0;
+		wds.pImageInfo = &m_Texture->GetImageInfo();
+
+		vkUpdateDescriptorSets(device, 1, &wds, 0, nullptr);
+
 		InitBuffers();
 		InitPipeline();
+
 	}
 
 	void Renderer::Shutdown()
 	{
-		WL_INFO("Shutting down!");
+		WL_INFO("Renderer shutting down!");
 
 		VkDevice device = GetVulkanInfo()->Device;
+
+		vkDestroyDescriptorSetLayout(device, m_DescriptorSetLayout, nullptr);
 
 		vkDestroyPipeline(device, m_GraphicsPipeline, nullptr);
 
@@ -66,6 +107,7 @@ namespace Cubed
 
 		// Bind the graphics pipeline.
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
+
 
 		VkViewport vp{
 			.y = vpHeight,
@@ -98,13 +140,15 @@ namespace Cubed
 		// Bind the graphics pipeline.
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
 
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSet, 0, nullptr);
+
 		vkCmdPushConstants(commandBuffer, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &m_PushConstants);
 
 		VkDeviceSize offset{ 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_VertexBuffer.Handle, &offset);
 		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer.Handle, offset, VK_INDEX_TYPE_UINT32);
 
-		vkCmdDrawIndexed(commandBuffer, m_IndexBuffer.BufferSize / sizeof(uint32_t), 1, 0, 0, 0); 
+		vkCmdDrawIndexed(commandBuffer, (uint32_t)m_IndexBuffer.BufferSize / sizeof(uint32_t), 1, 0, 0, 0); 
 	}
 
 	void Renderer::RenderUI()
@@ -127,6 +171,8 @@ namespace Cubed
 		VkPipelineLayoutCreateInfo layout_info{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 		layout_info.pPushConstantRanges = pushConstantRanges.data();
 		layout_info.pushConstantRangeCount = (uint32_t)pushConstantRanges.size();
+		layout_info.pSetLayouts = &m_DescriptorSetLayout;
+		layout_info.setLayoutCount = 1;
 		VK_CHECK(vkCreatePipelineLayout(device, &layout_info, nullptr, &m_PipelineLayout));
 
 		// The Vertex input properties define the interface between the vertex buffer and the vertex shader.
@@ -154,16 +200,16 @@ namespace Cubed
 					.offset = offsetof(Vertex, Position)
 				}, 
 				{
-					.location = 1, 
-					.binding = 0, 
-					.format = VK_FORMAT_R32G32B32_SFLOAT, 
-					.offset = offsetof(Vertex, Color)
-				},
-				{
-					.location = 2,
+					.location = 1,
 					.binding = 0,
 					.format = VK_FORMAT_R32G32B32_SFLOAT,
 					.offset = offsetof(Vertex, Normal)
+				}, 
+				{
+					.location = 2,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32_SFLOAT,
+					.offset = offsetof(Vertex, UV)
 				}
 			}
 		};
@@ -257,100 +303,25 @@ namespace Cubed
 	{
 		VkDevice device = GetVulkanInfo()->Device;
 
-		glm::vec3 vertexData[8] = {
-			// front
-			glm::vec3(-0.5f, -0.5f, 0.5f), // front bottom left
-			glm::vec3(-0.5f,  0.5f, 0.5f), // front top left
-			glm::vec3( 0.5f,  0.5f, 0.5f), // front top right
-			glm::vec3( 0.5f, -0.5f, 0.5f), // front bottom right
-
-			// back
-			glm::vec3( 0.5f, -0.5f, -0.5f), // back bottom left
-			glm::vec3( 0.5f,  0.5f, -0.5f), // back top left
-			glm::vec3(-0.5f,  0.5f, -0.5f),// back top right
-			glm::vec3(-0.5f, -0.5f, -0.5f) // back bottom right
-		};
-
-		glm::vec3 normals[6] = {
-			glm::vec3( 0,  0,  1), // Front
-			glm::vec3( 1,  0,  0), // Right
-			glm::vec3( 0,  0, -1), // Back
-			glm::vec3(-1,  0,  0), // Left 
-			glm::vec3( 0,  1,  0), // Top
-			glm::vec3( 0, -1,  0), // Bottom
-		};
-
-		//uint32_t indices[36] = { 
-		//	0, 1, 2, 2, 3, 0, // Front
-		//	3, 2, 5, 5, 4, 3, // Right
-		//	4, 5, 6, 6, 7, 4, // Back
-		//	7, 6, 1, 1, 0, 7, // Left
-		//	1, 6, 5, 5, 2, 1, // Top
-		//	7, 0, 3, 3, 4, 7  // Bottom
-		//};
-
-		std::array<uint32_t, 36> indices;
-		uint32_t offset = 0;
-		for (int i = 0; i < 36; i+=6)
-		{
-			indices[i + 0] = 0 + offset;
-			indices[i + 1] = 1 + offset;
-			indices[i + 2] = 2 + offset;
-			indices[i + 3] = 2 + offset;
-			indices[i + 4] = 3 + offset;
-			indices[i + 5] = 0 + offset;
-
-			offset += 4;
-		}
-		
-		Vertex vertices[24] = {
-			// position,    color,				normal
-			{vertexData[0], glm::vec3{1, 0, 0}, normals[0]}, // Front
-			{vertexData[1], glm::vec3{0, 1, 0}, normals[0]},
-			{vertexData[2], glm::vec3{0, 0, 1}, normals[0]},
-			{vertexData[3], glm::vec3{1, 1, 1}, normals[0]},
-
-			{vertexData[3], glm::vec3{1, 0, 0}, normals[1]}, // Right
-			{vertexData[2], glm::vec3{0, 1, 0}, normals[1]},
-			{vertexData[5], glm::vec3{0, 0, 1}, normals[1]},
-			{vertexData[4], glm::vec3{1, 1, 1}, normals[1]},
-
-			{vertexData[4], glm::vec3{1, 0, 0}, normals[2]}, // Back
-			{vertexData[5], glm::vec3{0, 1, 0}, normals[2]},
-			{vertexData[6], glm::vec3{0, 0, 1}, normals[2]},
-			{vertexData[7], glm::vec3{1, 1, 1}, normals[2]},
-
-			{vertexData[7], glm::vec3{1, 0, 0}, normals[3]}, // Left
-			{vertexData[6], glm::vec3{0, 1, 0}, normals[3]},
-			{vertexData[1], glm::vec3{0, 0, 1}, normals[3]},
-			{vertexData[0], glm::vec3{1, 1, 1}, normals[3]},
-
-			{vertexData[1], glm::vec3{1, 0, 0}, normals[4]}, // Top
-			{vertexData[6], glm::vec3{0, 1, 0}, normals[4]},
-			{vertexData[5], glm::vec3{0, 0, 1}, normals[4]},
-			{vertexData[2], glm::vec3{1, 1, 1}, normals[4]},
-
-			{vertexData[7], glm::vec3{1, 0, 0}, normals[5]}, // Bottom
-			{vertexData[0], glm::vec3{0, 1, 0}, normals[5]},
-			{vertexData[3], glm::vec3{0, 0, 1}, normals[5]},
-			{vertexData[4], glm::vec3{1, 1, 1}, normals[5]},
-		};
+		OBJModel model = ReadModelFromDisk("Assets/Cube.obj");
+		uint32_t modelSize = model.ModelSize();
+		uint32_t indicesSize = model.Indices.size() * sizeof(uint32_t);
 
 		// Create vertex and index buffer
 		m_VertexBuffer.Usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		CreateOrResizeBuffer(m_VertexBuffer, sizeof(vertices));
+		CreateOrResizeBuffer(m_VertexBuffer, modelSize);
 
 		m_IndexBuffer.Usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		CreateOrResizeBuffer(m_IndexBuffer, indices.size() * sizeof(uint32_t));
+		CreateOrResizeBuffer(m_IndexBuffer, indicesSize);
 
 		// Map memory from the cpu to the gpu
 		Vertex* vbMemory{};
-		VK_CHECK(vkMapMemory(device, m_VertexBuffer.Memory, 0, sizeof(vertices), 0, (void**)&vbMemory));
-		memcpy_s(vbMemory, sizeof(vertices), vertices, sizeof(vertices));
+		VK_CHECK(vkMapMemory(device, m_VertexBuffer.Memory, 0, modelSize, 0, (void**)&vbMemory));
+		memcpy_s(vbMemory, modelSize, model.Vertices.data(), modelSize);
 
 		uint32_t* ibMemory{};
-		VK_CHECK(vkMapMemory(device, m_IndexBuffer.Memory, 0, sizeof(indices), 0, (void**)&ibMemory));
-		memcpy_s(ibMemory, indices.size() * sizeof(uint32_t), indices.data(), indices.size() * sizeof(uint32_t));
+		VK_CHECK(vkMapMemory(device, m_IndexBuffer.Memory, 0, indicesSize, 0, (void**)&ibMemory));
+		memcpy_s(ibMemory, indicesSize, model.Indices.data(), indicesSize);
 
 		VkMappedMemoryRange range[2] = {};
 		range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
@@ -421,7 +392,7 @@ namespace Cubed
 
 		VkMemoryAllocateInfo alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 		alloc_info.allocationSize = req.size;
-		alloc_info.memoryTypeIndex = ImGui_ImplVulkan_MemoryType(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
+		alloc_info.memoryTypeIndex = GetVulkanMemoryType(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, req.memoryTypeBits);
 		VK_CHECK(vkAllocateMemory(device, &alloc_info, nullptr, &buffer.Memory));
 
 		VK_CHECK(vkBindBufferMemory(device, buffer.Handle, buffer.Memory, 0));
